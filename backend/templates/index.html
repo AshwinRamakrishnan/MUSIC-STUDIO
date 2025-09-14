@@ -1,0 +1,266 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>AI Song Re-Composer 360°</title>
+<style>
+:root {
+  --bg:#0e405f; --card:#0a3857; --muted:#94a3b8; --accent:#703f7c; --glass: rgba(171,128,128,0.04);
+  --radius:14px; --gap:16px;
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
+}
+html,body{height:100%;margin:0;background:linear-gradient(180deg,#274b5f 0%, #234e79 100%);color:#b7cce2;}
+.wrap{max-width:1100px;margin:28px auto;padding:20px;}
+header{display:flex;align-items:center;gap:16px;}
+h1{font-size:20px;margin:0;}
+.logo{width:56px;height:56px;border-radius:14px;background:linear-gradient(135deg,#9f2a9f,#3aeded);display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff;position:relative;overflow:hidden;}
+.logo::after{content:"";position:absolute;top:0;left:-100%;width:60%;height:100%;background:linear-gradient(120deg,transparent,rgba(255,255,255,0.5),transparent);animation:shimmer 3s ease-in-out infinite;}
+@keyframes shimmer{0%{left:-100%;}60%{left:120%;}100%{left:120%;}}
+.grid{display:grid;grid-template-columns:1fr 420px;gap:20px;margin-top:18px;}
+@media(max-width:980px){.grid{grid-template-columns:1fr;}}
+.card{padding:20px;border-radius:20px;background:linear-gradient(145deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02));backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,0.08);display:flex;flex-direction:column;gap:14px;align-items:center;text-align:center;box-shadow:0 8px 25px rgba(0,0,0,0.25);transition:transform .3s ease,box-shadow .3s ease;}
+.card:hover{transform:translateY(-4px) scale(1.02);box-shadow:0 15px 40px rgba(124,58,237,0.3);}
+.custom-upload{display:flex;align-items:center;gap:12px;font-size:14px;}
+.custom-upload input[type="file"]{display:none;}
+button{cursor:pointer;border-radius:14px;padding:12px 18px;font-weight:600;transition:.3s;}
+#uploadBtn{background:linear-gradient(135deg, #06b6d4, #7c3aed);border:none;color:#fff;}
+#generateBtn{background:linear-gradient(135deg,#7c3aed,#06b6d4);color:#fff;}
+#downloadBtn.secondary{background:linear-gradient(135deg,#3b82f6,#34d399);color:#fff;}
+.poster{width:100%;max-width:260px;aspect-ratio:1/1;border-radius:18px;overflow:hidden;position:relative;border:2px solid rgba(255,255,255,0.1);background:rgba(15,23,42,0.6);box-shadow:0 0 25px rgba(6,182,212,0.15);}
+.poster-img{width:100%;height:100%;object-fit:cover;transition:transform .5s ease;}
+.poster:hover .poster-img{transform:scale(1.05);}
+#visualizer{width:100%;height:200px;border-radius:10px;background:linear-gradient(270deg,#06b6d4,#7c3aed,#f472b6,#06b6d4);background-size:400% 400%;border:1px solid rgba(255,255,255,0.05);box-shadow:0 0 100px rgba(236,72,153,0.2);}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div class="logo">AI</div>
+  <div>
+    <h1>MS Song Composer 360°</h1>
+    <div class="meta">Upload / Record → Analyze → Generate Remix → Visualize → Download</div>
+  </div>
+</header>
+
+<div class="grid">
+  <!-- Left -->
+  <div class="card">
+    <div class="custom-upload">
+      <input id="audioFile" type="file" accept="audio/*"/>
+      <button id="uploadBtn">📂 Choose File</button>
+      <span id="fileName">No file chosen</span>
+    </div>
+    <div style="margin-top:12px;display:flex;gap:8px;align-items:center;">
+      <button id="recordBtn" class="secondary">🎤 Record Humming</button>
+      <div style="flex:1;">
+        <label for="styleSelect">Choose target style</label>
+        <select id="styleSelect">
+          <option value="edm">EDM / Electronic</option>
+          <option value="rock">Rock</option>
+          <option value="classical">Classical / Orchestral</option>
+          <option value="folk">Folk / Cultural</option>
+          <option value="jazz">Jazz</option>
+          <option value="synthwave">Synthwave / Retro-Future</option>
+        </select>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:12px;">
+      <button id="generateBtn">Generate Remix</button>
+      <button id="downloadBtn" class="secondary" disabled>Download Remix</button>
+    </div>
+    <div style="margin-top:12px;">
+      <label>Analysis (tempo, key, mood)</label>
+      <pre id="analysis">No audio yet. Upload or record to analyze.</pre>
+    </div>
+    <audio id="audioPlayer" controls style="margin-top:12px;"></audio>
+    <canvas id="visualizer"></canvas>
+  </div>
+
+  <!-- Right -->
+  <div>
+    <div class="card lyrics-columns" style="margin-bottom:16px">
+      <div>
+        <label>AI-generated Lyrics / Notes</label>
+        <pre id="aiLyrics">No lyrics yet.</pre>
+      </div>
+    </div>
+    <div class="card" style="margin-bottom:16px">
+      <label>AI-generated Poster / Album Art</label>
+      <div class="poster"><img id="poster" class="poster-img" src="" alt="Poster preview"/></div>
+    </div>
+    <div class="card">
+      <label>Recent outputs</label>
+      <div id="outputs"></div>
+    </div>
+  </div>
+</div>
+</div>
+<script>const uploadBtn = document.getElementById('uploadBtn');
+  const audioFileInput = document.getElementById('audioFile');
+  const fileNameSpan = document.getElementById('fileName');
+  const audioPlayer = document.getElementById('audioPlayer');
+  const generateBtn = document.getElementById('generateBtn');
+  const downloadBtn = document.getElementById('downloadBtn');
+  const styleSelect = document.getElementById('styleSelect');
+  const analysisPre = document.getElementById('analysis');
+  const lyricsPre = document.getElementById('aiLyrics');
+  const posterImg = document.getElementById('poster');
+  const outputsBox = document.getElementById('outputs');
+  const recordBtn = document.getElementById('recordBtn');
+  
+  let selectedFile, audioContext, analyser, sourceNode, rafId, mediaRecorder, recordedChunks = [];
+  
+  // --- Upload file ---
+  uploadBtn.addEventListener('click', () => audioFileInput.click());
+  audioFileInput.addEventListener('change', async () => {
+      const file = audioFileInput.files[0];
+      if (!file) return;
+      fileNameSpan.textContent = file.name;
+      selectedFile = file;
+      audioPlayer.src = URL.createObjectURL(file);
+      audioPlayer.onplay = () => { if (!audioContext) createVisualizerForMediaElement(audioPlayer); };
+      await analyzeAudio(file);
+  });
+  
+  // --- Audio visualizer ---
+  function ensureAudioContext() { if (!audioContext) audioContext = new (window.AudioContext || window.webkitAudioContext)(); }
+  function createVisualizerForMediaElement(mediaElement){
+      ensureAudioContext();
+      try{ if(sourceNode) sourceNode.disconnect(); } catch(e){}
+      sourceNode = audioContext.createMediaElementSource(mediaElement);
+      analyser = audioContext.createAnalyser();
+      analyser.fftSize = 1024;
+      sourceNode.connect(analyser);
+      analyser.connect(audioContext.destination);
+      drawVisualizer();
+  }
+  function drawVisualizer() {
+      const canvas = document.getElementById('visualizer');
+      const ctx = canvas.getContext('2d');
+      const WIDTH = canvas.clientWidth * devicePixelRatio;
+      const HEIGHT = 150 * devicePixelRatio;
+      canvas.width = WIDTH; canvas.height = HEIGHT;
+      const bufferLength = analyser.frequencyBinCount;
+      const dataArray = new Uint8Array(bufferLength);
+      function draw() {
+          rafId = requestAnimationFrame(draw);
+          analyser.getByteFrequencyData(dataArray);
+          ctx.fillStyle = '#031226';
+          ctx.fillRect(0,0,WIDTH,HEIGHT);
+          let x = 0;
+          const barWidth = (WIDTH / bufferLength) * 2.5;
+          for(let i=0;i<bufferLength;i++){
+              const barHeight = dataArray[i];
+              ctx.fillStyle = `rgb(${barHeight+100},50,${255-barHeight})`;
+              ctx.fillRect(x, HEIGHT-barHeight/2, barWidth, barHeight/2);
+              x += barWidth + 1;
+          }
+      }
+      draw();
+  }
+  
+ // --- Audio analysis (dummy, always works) ---
+async function analyzeAudio(file){
+  // Arrays for dummy values
+  const dummyTempos = [90, 100, 110, 120, 130];
+  const dummyKeys = ["C", "D", "E", "F", "G", "A", "B"];
+  const dummyMoods = ["love", "happy", "sad", "action", "romantic", "devotional"];
+
+  // Pick random values
+  const randomTempo = dummyTempos[Math.floor(Math.random()*dummyTempos.length)];
+  const randomKey = dummyKeys[Math.floor(Math.random()*dummyKeys.length)];
+  const randomMood = dummyMoods[Math.floor(Math.random()*dummyMoods.length)];
+
+  // Update UI immediately
+  analysisPre.textContent = `Tempo: ${randomTempo} BPM\nKey: ${randomKey}\nMood: ${randomMood}`;
+
+  // Optional: small delay to simulate real analysis
+  await new Promise(resolve => setTimeout(resolve, 500));
+}
+
+  // --- Fetch Lyrics ---
+  async function fetchLyrics(songName) {
+      try {
+          let res = await fetch("http://127.0.0.1:5000/api/lyrics", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ song_name: songName })
+          });
+          let data = await res.json();
+          lyricsPre.textContent = data.lyrics || "No lyrics generated.";
+      } catch(e){
+          lyricsPre.textContent = "Failed to fetch lyrics.";
+          console.error(e);
+      }
+  }
+  
+  // --- Fetch Poster (temporary random placeholder) ---
+  async function fetchPoster(songName) {
+      // Show a random placeholder poster for now
+      const randomNum = Math.floor(Math.random()*1000);
+      posterImg.src = "https://picsum.photos/300/300?random=" + randomNum;
+      posterImg.alt = songName + " Poster";
+  }
+  
+  // --- Generate Lyrics & Poster ---
+  generateBtn.addEventListener('click', async ()=>{
+      if(!selectedFile){ alert('Upload audio first'); return; }
+  
+      const songName = fileNameSpan.textContent.split('.')[0]; 
+      const selectedStyle = styleSelect.value || "vibrant"; // for future backend use
+      generateBtn.textContent = "Generating...";
+  
+      try {
+          // Lyrics
+          await fetchLyrics(songName);
+  
+          // Poster (placeholder random image for now)
+          await fetchPoster(songName);
+  
+          downloadBtn.disabled = false;
+          outputsBox.innerHTML = `<div>Output generated at ${new Date().toLocaleTimeString()}</div>` + outputsBox.innerHTML;
+  
+      } catch(e){
+          console.error(e);
+          alert("Failed to generate output");
+      } finally {
+          generateBtn.textContent = "Generate Remix";
+      }
+  });
+  
+  // --- Download button ---
+  downloadBtn.addEventListener('click', () => {
+      const a = document.createElement('a');
+      a.href = audioPlayer.src;
+      a.download = 'remix.mp3';
+      a.click();
+  });
+  
+  // --- Record audio ---
+  recordBtn.addEventListener('click', async ()=>{
+      if(!mediaRecorder){
+          const stream = await navigator.mediaDevices.getUserMedia({audio:true});
+          mediaRecorder = new MediaRecorder(stream);
+          mediaRecorder.ondataavailable = e=>recordedChunks.push(e.data);
+          mediaRecorder.onstop = ()=>{ 
+              const blob = new Blob(recordedChunks,{type:'audio/mp3'});
+              selectedFile = new File([blob],"recorded.mp3",{type:"audio/mp3"});
+              audioPlayer.src = URL.createObjectURL(blob);
+              recordedChunks = [];
+              analyzeAudio(selectedFile);
+          };
+      }
+      if(mediaRecorder.state==="inactive"){ 
+          mediaRecorder.start(); 
+          recordBtn.textContent="⏹ Stop Recording"; 
+      } else { 
+          mediaRecorder.stop(); 
+          recordBtn.textContent="🎤 Record Humming"; 
+      }
+  });
+  
+</script>
+
+</body>
+</html>
