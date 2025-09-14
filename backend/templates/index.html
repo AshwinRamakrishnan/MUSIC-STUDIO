@@ -182,11 +182,15 @@ async function analyzeAudio(file){
   // --- Fetch Lyrics ---
   async function fetchLyrics(songName) {
       try {
-          let res = await fetch("http://127.0.0.1:5000/api/lyrics", {
+          let res = await fetch("https://music-studio.onrender.com/api/lyrics", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({ song_name: songName })
           });
+
+
+
+    
           let data = await res.json();
           lyricsPre.textContent = data.lyrics || "No lyrics generated.";
       } catch(e){
@@ -264,3 +268,4 @@ async function analyzeAudio(file){
 
 </body>
 </html>
+
