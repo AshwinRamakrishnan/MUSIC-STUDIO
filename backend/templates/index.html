@@ -96,175 +96,171 @@ button{cursor:pointer;border-radius:14px;padding:12px 18px;font-weight:600;trans
   </div>
 </div>
 </div>
-<script>const uploadBtn = document.getElementById('uploadBtn');
-  const audioFileInput = document.getElementById('audioFile');
-  const fileNameSpan = document.getElementById('fileName');
-  const audioPlayer = document.getElementById('audioPlayer');
-  const generateBtn = document.getElementById('generateBtn');
-  const downloadBtn = document.getElementById('downloadBtn');
-  const styleSelect = document.getElementById('styleSelect');
-  const analysisPre = document.getElementById('analysis');
-  const lyricsPre = document.getElementById('aiLyrics');
-  const posterImg = document.getElementById('poster');
-  const outputsBox = document.getElementById('outputs');
-  const recordBtn = document.getElementById('recordBtn');
-  
-  let selectedFile, audioContext, analyser, sourceNode, rafId, mediaRecorder, recordedChunks = [];
-  
-  // --- Upload file ---
-  uploadBtn.addEventListener('click', () => audioFileInput.click());
-  audioFileInput.addEventListener('change', async () => {
-      const file = audioFileInput.files[0];
-      if (!file) return;
-      fileNameSpan.textContent = file.name;
-      selectedFile = file;
-      audioPlayer.src = URL.createObjectURL(file);
-      audioPlayer.onplay = () => { if (!audioContext) createVisualizerForMediaElement(audioPlayer); };
-      await analyzeAudio(file);
-  });
-  
-  // --- Audio visualizer ---
-  function ensureAudioContext() { if (!audioContext) audioContext = new (window.AudioContext || window.webkitAudioContext)(); }
-  function createVisualizerForMediaElement(mediaElement){
-      ensureAudioContext();
-      try{ if(sourceNode) sourceNode.disconnect(); } catch(e){}
-      sourceNode = audioContext.createMediaElementSource(mediaElement);
-      analyser = audioContext.createAnalyser();
-      analyser.fftSize = 1024;
-      sourceNode.connect(analyser);
-      analyser.connect(audioContext.destination);
-      drawVisualizer();
-  }
-  function drawVisualizer() {
-      const canvas = document.getElementById('visualizer');
-      const ctx = canvas.getContext('2d');
-      const WIDTH = canvas.clientWidth * devicePixelRatio;
-      const HEIGHT = 150 * devicePixelRatio;
-      canvas.width = WIDTH; canvas.height = HEIGHT;
-      const bufferLength = analyser.frequencyBinCount;
-      const dataArray = new Uint8Array(bufferLength);
-      function draw() {
-          rafId = requestAnimationFrame(draw);
-          analyser.getByteFrequencyData(dataArray);
-          ctx.fillStyle = '#031226';
-          ctx.fillRect(0,0,WIDTH,HEIGHT);
-          let x = 0;
-          const barWidth = (WIDTH / bufferLength) * 2.5;
-          for(let i=0;i<bufferLength;i++){
-              const barHeight = dataArray[i];
-              ctx.fillStyle = `rgb(${barHeight+100},50,${255-barHeight})`;
-              ctx.fillRect(x, HEIGHT-barHeight/2, barWidth, barHeight/2);
-              x += barWidth + 1;
-          }
-      }
-      draw();
-  }
-  
- // --- Audio analysis (dummy, always works) ---
+<script>
+const uploadBtn = document.getElementById('uploadBtn');
+const audioFileInput = document.getElementById('audioFile');
+const fileNameSpan = document.getElementById('fileName');
+const audioPlayer = document.getElementById('audioPlayer');
+const generateBtn = document.getElementById('generateBtn');
+const downloadBtn = document.getElementById('downloadBtn');
+const styleSelect = document.getElementById('styleSelect');
+const analysisPre = document.getElementById('analysis');
+const lyricsPre = document.getElementById('aiLyrics');
+const posterImg = document.getElementById('poster');
+const outputsBox = document.getElementById('outputs');
+const recordBtn = document.getElementById('recordBtn');
+
+let selectedFile, audioContext, analyser, sourceNode, rafId, mediaRecorder, recordedChunks = [];
+
+// --- Upload file ---
+uploadBtn.addEventListener('click', () => audioFileInput.click());
+audioFileInput.addEventListener('change', async () => {
+    const file = audioFileInput.files[0];
+    if (!file) return;
+    fileNameSpan.textContent = file.name;
+    selectedFile = file;
+    audioPlayer.src = URL.createObjectURL(file);
+    audioPlayer.onplay = () => { if (!audioContext) createVisualizerForMediaElement(audioPlayer); };
+    await analyzeAudio(file);
+});
+
+// --- Audio visualizer ---
+function ensureAudioContext() { if (!audioContext) audioContext = new (window.AudioContext || window.webkitAudioContext)(); }
+function createVisualizerForMediaElement(mediaElement){
+    ensureAudioContext();
+    try{ if(sourceNode) sourceNode.disconnect(); } catch(e){}
+    sourceNode = audioContext.createMediaElementSource(mediaElement);
+    analyser = audioContext.createAnalyser();
+    analyser.fftSize = 1024;
+    sourceNode.connect(analyser);
+    analyser.connect(audioContext.destination);
+    drawVisualizer();
+}
+function drawVisualizer() {
+    const canvas = document.getElementById('visualizer');
+    const ctx = canvas.getContext('2d');
+    const WIDTH = canvas.clientWidth * devicePixelRatio;
+    const HEIGHT = 150 * devicePixelRatio;
+    canvas.width = WIDTH; canvas.height = HEIGHT;
+    const bufferLength = analyser.frequencyBinCount;
+    const dataArray = new Uint8Array(bufferLength);
+    function draw() {
+        rafId = requestAnimationFrame(draw);
+        analyser.getByteFrequencyData(dataArray);
+        ctx.fillStyle = '#031226';
+        ctx.fillRect(0,0,WIDTH,HEIGHT);
+        let x = 0;
+        const barWidth = (WIDTH / bufferLength) * 2.5;
+        for(let i=0;i<bufferLength;i++){
+            const barHeight = dataArray[i];
+            ctx.fillStyle = `rgb(${barHeight+100},50,${255-barHeight})`;
+            ctx.fillRect(x, HEIGHT-barHeight/2, barWidth, barHeight/2);
+            x += barWidth + 1;
+        }
+    }
+    draw();
+}
+
+// --- Audio analysis (dummy, always works) ---
 async function analyzeAudio(file){
-  // Arrays for dummy values
   const dummyTempos = [90, 100, 110, 120, 130];
   const dummyKeys = ["C", "D", "E", "F", "G", "A", "B"];
   const dummyMoods = ["love", "happy", "sad", "action", "romantic", "devotional"];
 
-  // Pick random values
   const randomTempo = dummyTempos[Math.floor(Math.random()*dummyTempos.length)];
   const randomKey = dummyKeys[Math.floor(Math.random()*dummyKeys.length)];
   const randomMood = dummyMoods[Math.floor(Math.random()*dummyMoods.length)];
 
-  // Update UI immediately
   analysisPre.textContent = `Tempo: ${randomTempo} BPM\nKey: ${randomKey}\nMood: ${randomMood}`;
 
-  // Optional: small delay to simulate real analysis
   await new Promise(resolve => setTimeout(resolve, 500));
 }
 
-  // --- Fetch Lyrics ---
-  async function fetchLyrics(songName) {
+// --- Fetch Lyrics ---
+async function fetchLyrics(songName) {
+  try {
+      let res = await fetch("https://music-studio-d8pn.onrender.com/api/lyrics", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ song_name: songName })
+      });
+
+      let data = await res.json();
+      console.log("Lyrics Response:", data);
+
+      // === Update UI ===
+      if (data.lyrics) {
+          lyricsPre.textContent = data.lyrics;
+      } else {
+          lyricsPre.textContent = "No lyrics generated.";
+      }
+  } catch (err) {
+      console.error("Error fetching lyrics:", err);
+      lyricsPre.textContent = "Error fetching lyrics.";
+  }
+}
+
+// --- Fetch Poster (placeholder) ---
+async function fetchPoster(songName) {
+    const randomNum = Math.floor(Math.random()*1000);
+    posterImg.src = "https://picsum.photos/300/300?random=" + randomNum;
+    posterImg.alt = songName + " Poster";
+}
+
+// --- Generate Lyrics & Poster ---
+generateBtn.addEventListener('click', async ()=>{
+    if(!selectedFile){ alert('Upload audio first'); return; }
+
+    const songName = fileNameSpan.textContent.split('.')[0]; 
+    const selectedStyle = styleSelect.value || "vibrant";
+    generateBtn.textContent = "Generating...";
+
     try {
-        let res = await fetch("https://music-studio-d8pn.onrender.com/api/lyrics", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ song_name: songName })
-        });
+        await fetchLyrics(songName);
+        await fetchPoster(songName);
 
-        let data = await res.json();
-        console.log("Lyrics Response:", data);
-    } catch (err) {
-        console.error("Error fetching lyrics:", err);
+        downloadBtn.disabled = false;
+        outputsBox.innerHTML = `<div>Output generated at ${new Date().toLocaleTimeString()}</div>` + outputsBox.innerHTML;
+
+    } catch(e){
+        console.error(e);
+        alert("Failed to generate output");
+    } finally {
+        generateBtn.textContent = "Generate Remix";
     }
-  }
+});
 
+// --- Download button ---
+downloadBtn.addEventListener('click', () => {
+    const a = document.createElement('a');
+    a.href = audioPlayer.src;
+    a.download = 'remix.mp3';
+    a.click();
+});
 
-    
-  // --- Fetch Poster (temporary random placeholder) ---
-  async function fetchPoster(songName) {
-      // Show a random placeholder poster for now
-      const randomNum = Math.floor(Math.random()*1000);
-      posterImg.src = "https://picsum.photos/300/300?random=" + randomNum;
-      posterImg.alt = songName + " Poster";
-  }
-  
-  // --- Generate Lyrics & Poster ---
-  generateBtn.addEventListener('click', async ()=>{
-      if(!selectedFile){ alert('Upload audio first'); return; }
-  
-      const songName = fileNameSpan.textContent.split('.')[0]; 
-      const selectedStyle = styleSelect.value || "vibrant"; // for future backend use
-      generateBtn.textContent = "Generating...";
-  
-      try {
-          // Lyrics
-          await fetchLyrics(songName);
-  
-          // Poster (placeholder random image for now)
-          await fetchPoster(songName);
-  
-          downloadBtn.disabled = false;
-          outputsBox.innerHTML = `<div>Output generated at ${new Date().toLocaleTimeString()}</div>` + outputsBox.innerHTML;
-  
-      } catch(e){
-          console.error(e);
-          alert("Failed to generate output");
-      } finally {
-          generateBtn.textContent = "Generate Remix";
-      }
-  });
-  
-  // --- Download button ---
-  downloadBtn.addEventListener('click', () => {
-      const a = document.createElement('a');
-      a.href = audioPlayer.src;
-      a.download = 'remix.mp3';
-      a.click();
-  });
-  
-  // --- Record audio ---
-  recordBtn.addEventListener('click', async ()=>{
-      if(!mediaRecorder){
-          const stream = await navigator.mediaDevices.getUserMedia({audio:true});
-          mediaRecorder = new MediaRecorder(stream);
-          mediaRecorder.ondataavailable = e=>recordedChunks.push(e.data);
-          mediaRecorder.onstop = ()=>{ 
-              const blob = new Blob(recordedChunks,{type:'audio/mp3'});
-              selectedFile = new File([blob],"recorded.mp3",{type:"audio/mp3"});
-              audioPlayer.src = URL.createObjectURL(blob);
-              recordedChunks = [];
-              analyzeAudio(selectedFile);
-          };
-      }
-      if(mediaRecorder.state==="inactive"){ 
-          mediaRecorder.start(); 
-          recordBtn.textContent="⏹ Stop Recording"; 
-      } else { 
-          mediaRecorder.stop(); 
-          recordBtn.textContent="🎤 Record Humming"; 
-      }
-  });
-  
+// --- Record audio ---
+recordBtn.addEventListener('click', async ()=>{
+    if(!mediaRecorder){
+        const stream = await navigator.mediaDevices.getUserMedia({audio:true});
+        mediaRecorder = new MediaRecorder(stream);
+        mediaRecorder.ondataavailable = e=>recordedChunks.push(e.data);
+        mediaRecorder.onstop = ()=>{ 
+            const blob = new Blob(recordedChunks,{type:'audio/mp3'});
+            selectedFile = new File([blob],"recorded.mp3",{type:"audio/mp3"});
+            audioPlayer.src = URL.createObjectURL(blob);
+            recordedChunks = [];
+            analyzeAudio(selectedFile);
+        };
+    }
+    if(mediaRecorder.state==="inactive"){ 
+        mediaRecorder.start(); 
+        recordBtn.textContent="⏹ Stop Recording"; 
+    } else { 
+        mediaRecorder.stop(); 
+        recordBtn.textContent="🎤 Record Humming"; 
+    }
+});
 </script>
 
 </body>
 </html>
-
-
