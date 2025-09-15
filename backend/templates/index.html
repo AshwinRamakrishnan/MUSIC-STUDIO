@@ -181,24 +181,22 @@ async function analyzeAudio(file){
 
   // --- Fetch Lyrics ---
   async function fetchLyrics(songName) {
-      try {
-          let res = await fetch("https://music-studio.onrender.com/api/lyrics", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ song_name: songName })
-          });
+    try {
+        let res = await fetch("https://music-studio-d8pn.onrender.com/api/lyrics", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ song_name: songName })
+        });
 
+        let data = await res.json();
+        console.log("Lyrics Response:", data);
+    } catch (err) {
+        console.error("Error fetching lyrics:", err);
+    }
+  }
 
 
     
-          let data = await res.json();
-          lyricsPre.textContent = data.lyrics || "No lyrics generated.";
-      } catch(e){
-          lyricsPre.textContent = "Failed to fetch lyrics.";
-          console.error(e);
-      }
-  }
-  
   // --- Fetch Poster (temporary random placeholder) ---
   async function fetchPoster(songName) {
       // Show a random placeholder poster for now
@@ -268,4 +266,5 @@ async function analyzeAudio(file){
 
 </body>
 </html>
+
 
